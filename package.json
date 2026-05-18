@@ -1,0 +1,46 @@
+{
+  "name": "@dainami/ffmpeg-mcp",
+  "version": "0.1.0",
+  "description": "Minimal MCP server for running local ffmpeg / shell commands and downloading remote files. Agent writes the command; this just executes it.",
+  "type": "module",
+  "bin": {
+    "dainami-ffmpeg-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "author": "Dainami",
+  "homepage": "https://github.com/dainami/ffmpeg-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dainami/ffmpeg-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ffmpeg",
+    "shell",
+    "video",
+    "claude"
+  ]
+}

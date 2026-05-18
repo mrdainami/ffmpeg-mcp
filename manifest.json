@@ -1,0 +1,48 @@
+{
+  "dxt_version": "0.1",
+  "name": "ffmpeg-mcp",
+  "display_name": "ffmpeg (local shell)",
+  "version": "0.1.0",
+  "description": "Download files and run local shell commands (ffmpeg, ffprobe, etc). Agent writes the command; this just executes it.",
+  "long_description": "Minimal MCP server with two tools: `download` (URL → local path) and `shell_run` (any shell command). Built for composing video ads with local ffmpeg, but works for any local command-execution use case. SECURITY: shell_run executes arbitrary shell commands as your user. Only install if you trust the agent driving it.",
+  "author": {
+    "name": "Dainami",
+    "url": "https://github.com/dainami"
+  },
+  "homepage": "https://github.com/mrdainami/ffmpeg-mcp",
+  "documentation": "https://github.com/mrdainami/ffmpeg-mcp#readme",
+  "support": "https://github.com/mrdainami/ffmpeg-mcp/issues",
+  "license": "MIT",
+  "keywords": ["ffmpeg", "shell", "video", "compose"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "FFMPEG_MCP_WORKDIR": "${user_config.workdir}"
+      }
+    }
+  },
+  "user_config": {
+    "workdir": {
+      "type": "directory",
+      "title": "Working directory",
+      "description": "Default folder for downloaded files + ffmpeg output. Relative paths in tool calls resolve here. Example: ~/AINIO/ads",
+      "required": false,
+      "default": "${HOME}"
+    }
+  },
+  "tools": [
+    { "name": "shell_run", "description": "Run a shell command locally." },
+    { "name": "download", "description": "Download a URL to local disk." }
+  ],
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}

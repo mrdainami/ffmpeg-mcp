@@ -1,7 +1,7 @@
 {
   "name": "@dainami/ffmpeg-mcp",
-  "version": "0.1.0",
-  "description": "Minimal MCP server for running local ffmpeg / shell commands and downloading remote files. Agent writes the command; this just executes it.",
+  "version": "0.1.1",
+  "description": "Edit, compose, and transcode video and audio locally with ffmpeg, driven by Claude. Trim clips, stitch segments, mix voice + music, burn captions, generate thumbnails — anything ffmpeg can do, from chat.",
   "type": "module",
   "bin": {
     "dainami-ffmpeg-mcp": "dist/index.js"
@@ -29,11 +29,17 @@
     "node": ">=18"
   },
   "license": "MIT",
-  "author": "Dainami",
-  "homepage": "https://github.com/dainami/ffmpeg-mcp",
+  "author": {
+    "name": "mrdainami",
+    "url": "https://github.com/mrdainami"
+  },
+  "homepage": "https://github.com/mrdainami/ffmpeg-mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dainami/ffmpeg-mcp"
+    "url": "https://github.com/mrdainami/ffmpeg-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/mrdainami/ffmpeg-mcp/issues"
   },
   "keywords": [
     "mcp",

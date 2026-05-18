@@ -1,13 +1,13 @@
 {
   "dxt_version": "0.1",
   "name": "ffmpeg-mcp",
-  "display_name": "ffmpeg (local shell)",
-  "version": "0.1.0",
-  "description": "Download files and run local shell commands (ffmpeg, ffprobe, etc). Agent writes the command; this just executes it.",
-  "long_description": "Minimal MCP server with two tools: `download` (URL → local path) and `shell_run` (any shell command). Built for composing video ads with local ffmpeg, but works for any local command-execution use case. SECURITY: shell_run executes arbitrary shell commands as your user. Only install if you trust the agent driving it.",
+  "display_name": "ffmpeg — local video editing",
+  "version": "0.1.1",
+  "description": "Edit, compose, and transcode video and audio locally with ffmpeg, driven by Claude. Trim, stitch, mix, burn captions, generate thumbnails — anything ffmpeg can do, from chat.",
+  "long_description": "Let Claude edit and compose video locally on your machine using ffmpeg. Concatenate clips, trim segments, mix voiceover with background music, burn in captions, generate thumbnails, transcode formats, extract frames, run ffprobe diagnostics — whatever ffmpeg can do. The server is a thin shell + download wrapper; Claude writes the actual ffmpeg command from chat. Two tools: `download` (pull a remote video / audio file to local disk) and `shell_run` (run any shell command — ffmpeg, ffprobe, or anything else on your PATH). Requires ffmpeg to be installed on your machine. SECURITY: shell_run executes arbitrary shell commands as your user — only install if you trust the agent driving it.",
   "author": {
-    "name": "Dainami",
-    "url": "https://github.com/dainami"
+    "name": "mrdainami",
+    "url": "https://github.com/mrdainami"
   },
   "homepage": "https://github.com/mrdainami/ffmpeg-mcp",
   "documentation": "https://github.com/mrdainami/ffmpeg-mcp#readme",

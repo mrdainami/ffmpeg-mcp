@@ -1,8 +1,10 @@
 # @dainami/ffmpeg-mcp
 
-> A tiny MCP server that lets Claude (Desktop, Code, or any MCP client) **download files** and **run local shell commands** — built for composing video ads with ffmpeg, useful for any local command-execution.
+> Let Claude **edit, compose, and transcode video and audio** locally with ffmpeg — trim clips, stitch segments, mix voiceover with music, burn captions, generate thumbnails, extract frames, anything ffmpeg can do.
 
-Two tools. No magic, no recipes baked in. The agent writes the ffmpeg command; this just runs it.
+A tiny MCP server with two tools: `download` (pull a remote video / audio file to local disk) and `shell_run` (run any local shell command). Claude writes the actual ffmpeg command from chat using its knowledge of ffmpeg — this just executes it.
+
+No recipes baked in. No DSL to learn. Tell Claude what you want done to a video, it figures out the ffmpeg invocation, and this runs it.
 
 ---
 
@@ -75,17 +77,29 @@ Restart Claude Desktop.
 
 ---
 
-## What the agent does with these tools
+## What you can do with it
 
-Typical compose flow:
+Just ask Claude in plain English:
+
+- *"Stitch these three clips together and add this voiceover and music track"*
+- *"Trim the first 2 seconds off video.mp4 and re-encode at 1080p"*
+- *"Extract a still frame at 0:05 as thumbnail.jpg"*
+- *"Mix voice.mp3 over bgm.mp3, duck the music when the voice is talking"*
+- *"Burn captions.srt into this video with a bold yellow font"*
+- *"Convert this .mov to a 9:16 vertical mp4 for Instagram Reels"*
+- *"Run ffprobe on output.mp4 and tell me if it's broken"*
+
+Under the hood, Claude downloads the inputs, writes the ffmpeg command, runs it via `shell_run`, and reports the result.
+
+### Example: stitch three clips with audio passthrough
 
 ```ts
 // 1. Pull the inputs to local disk
-await download({ url: "https://pub-xxx.r2.dev/aop/seg-A.mp4", destPath: "ad2/seg-A.mp4" });
-await download({ url: "https://pub-xxx.r2.dev/aop/seg-B.mp4", destPath: "ad2/seg-B.mp4" });
-await download({ url: "https://pub-xxx.r2.dev/aop/seg-C.mp4", destPath: "ad2/seg-C.mp4" });
+await download({ url: "https://example.com/seg-A.mp4", destPath: "myvideo/seg-A.mp4" });
+await download({ url: "https://example.com/seg-B.mp4", destPath: "myvideo/seg-B.mp4" });
+await download({ url: "https://example.com/seg-C.mp4", destPath: "myvideo/seg-C.mp4" });
 
-// 2. Run ffmpeg (agent constructs the full command from its knowledge files)
+// 2. Run ffmpeg (Claude writes the full command)
 await shell_run({
   command: `ffmpeg \\
     -i seg-A.mp4 -i seg-B.mp4 -i seg-C.mp4 \\
@@ -93,12 +107,12 @@ await shell_run({
     -map "[outv]" -map "[outa]" \\
     -c:v libx264 -crf 18 -c:a aac -b:a 192k -movflags +faststart \\
     final.mp4`,
-  workdir: "ad2",
+  workdir: "myvideo",
   timeoutSec: 600
 });
 ```
 
-`final.mp4` lands at `~/AINIO/ads/ad2/final.mp4`. Agent reports the path to the user.
+`final.mp4` lands in your configured working directory.
 
 ---
 
@@ -178,4 +192,4 @@ npm run dev
 
 MIT — see [LICENSE](./LICENSE).
 
-Built for the [AINIO Story Ads Project](https://github.com/mrdainami/ainio-story-ads). PRs and issues welcome.
+By [mrdainami](https://github.com/mrdainami). PRs and issues welcome.

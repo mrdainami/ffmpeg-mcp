@@ -22,6 +22,14 @@ import { delimiter, dirname, isAbsolute, resolve } from "node:path";
 import { homedir } from "node:os";
 import ffmpegStatic from "ffmpeg-static";
 import ffprobeStatic from "ffprobe-static";
+import { fetch as undiciFetch } from "undici";
+
+// Explicit fetch import — some MCP host runtimes (notably Claude Cowork) don't
+// expose Node's global `fetch`. Falling back to undici (which powers global
+// fetch under the hood) keeps `download` portable across hosts.
+const fetchImpl: typeof globalThis.fetch =
+  (globalThis as { fetch?: typeof globalThis.fetch }).fetch ??
+  (undiciFetch as unknown as typeof globalThis.fetch);
 
 const WORKDIR_ROOT = (() => {
   const env = process.env.FFMPEG_MCP_WORKDIR;
@@ -142,7 +150,7 @@ type DownloadArgs = {
 async function downloadFile(args: DownloadArgs) {
   const dest = resolveWorkdir(args.destPath);
   await mkdir(dirname(dest), { recursive: true });
-  const res = await fetch(args.url);
+  const res = await fetchImpl(args.url);
   if (!res.ok) {
     return {
       ok: false,
@@ -157,7 +165,7 @@ async function downloadFile(args: DownloadArgs) {
 }
 
 const server = new Server(
-  { name: "dainami-ffmpeg-mcp", version: "0.1.2" },
+  { name: "dainami-ffmpeg-mcp", version: "0.1.3" },
   { capabilities: { tools: {} } },
 );
 

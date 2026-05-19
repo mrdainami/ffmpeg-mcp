@@ -18,8 +18,10 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { delimiter, dirname, isAbsolute, resolve } from "node:path";
 import { homedir } from "node:os";
+import ffmpegStatic from "ffmpeg-static";
+import ffprobeStatic from "ffprobe-static";
 
 const WORKDIR_ROOT = (() => {
   const env = process.env.FFMPEG_MCP_WORKDIR;
@@ -27,6 +29,26 @@ const WORKDIR_ROOT = (() => {
   if (env.startsWith("~")) return env.replace(/^~/, homedir());
   return env;
 })();
+
+// Resolve bundled binary paths. ffmpeg-static exports the binary path as default
+// (string), ffprobe-static exports an object with a .path field.
+const FFMPEG_BIN: string | null = (ffmpegStatic as unknown as string | null) ?? null;
+const FFPROBE_BIN: string | null = (ffprobeStatic as { path?: string } | null)?.path ?? null;
+
+// Directories we prepend to PATH so that bare `ffmpeg` / `ffprobe` invocations in
+// shell_run resolve to the bundled binaries — no system install required.
+const BUNDLED_BIN_DIRS: string[] = [FFMPEG_BIN, FFPROBE_BIN]
+  .filter((p): p is string => Boolean(p))
+  .map((p) => dirname(p));
+
+function envWithBundledBinaries(): NodeJS.ProcessEnv {
+  if (BUNDLED_BIN_DIRS.length === 0) return process.env;
+  const currentPath = process.env.PATH ?? "";
+  return {
+    ...process.env,
+    PATH: [...BUNDLED_BIN_DIRS, currentPath].filter(Boolean).join(delimiter),
+  };
+}
 
 function resolveWorkdir(p?: string): string {
   if (!p) return WORKDIR_ROOT;
@@ -65,6 +87,7 @@ async function shellRun(args: ShellArgs): Promise<ShellResult> {
     const child = spawn(args.command, {
       cwd,
       shell: true,
+      env: envWithBundledBinaries(),
     });
 
     const stdoutChunks: Buffer[] = [];
@@ -134,7 +157,7 @@ async function downloadFile(args: DownloadArgs) {
 }
 
 const server = new Server(
-  { name: "dainami-ffmpeg-mcp", version: "0.1.0" },
+  { name: "dainami-ffmpeg-mcp", version: "0.1.2" },
   { capabilities: { tools: {} } },
 );
 
@@ -225,3 +248,5 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 const transport = new StdioServerTransport();
 await server.connect(transport);
 console.error(`[dainami-ffmpeg-mcp] running on stdio — workdir ${WORKDIR_ROOT}`);
+console.error(`[dainami-ffmpeg-mcp] bundled ffmpeg:  ${FFMPEG_BIN ?? "NOT FOUND"}`);
+console.error(`[dainami-ffmpeg-mcp] bundled ffprobe: ${FFPROBE_BIN ?? "NOT FOUND"}`);

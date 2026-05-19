@@ -1,7 +1,7 @@
 {
   "name": "@dainami/ffmpeg-mcp",
-  "version": "0.1.1",
-  "description": "Edit, compose, and transcode video and audio locally with ffmpeg, driven by Claude. Trim clips, stitch segments, mix voice + music, burn captions, generate thumbnails — anything ffmpeg can do, from chat.",
+  "version": "0.1.2",
+  "description": "Edit, compose, and transcode video and audio locally with bundled ffmpeg, driven by Claude. Trim clips, stitch segments, mix voice + music, burn captions, generate thumbnails — anything ffmpeg can do, from chat. ffmpeg + ffprobe binaries are bundled — no system install required.",
   "type": "module",
   "bin": {
     "dainami-ffmpeg-mcp": "dist/index.js"
@@ -18,7 +18,9 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

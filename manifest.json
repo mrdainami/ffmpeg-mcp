@@ -2,9 +2,9 @@
   "dxt_version": "0.1",
   "name": "ffmpeg-mcp",
   "display_name": "ffmpeg — local video editing",
-  "version": "0.1.1",
-  "description": "Edit, compose, and transcode video and audio locally with ffmpeg, driven by Claude. Trim, stitch, mix, burn captions, generate thumbnails — anything ffmpeg can do, from chat.",
-  "long_description": "Let Claude edit and compose video locally on your machine using ffmpeg. Concatenate clips, trim segments, mix voiceover with background music, burn in captions, generate thumbnails, transcode formats, extract frames, run ffprobe diagnostics — whatever ffmpeg can do. The server is a thin shell + download wrapper; Claude writes the actual ffmpeg command from chat. Two tools: `download` (pull a remote video / audio file to local disk) and `shell_run` (run any shell command — ffmpeg, ffprobe, or anything else on your PATH). Requires ffmpeg to be installed on your machine. SECURITY: shell_run executes arbitrary shell commands as your user — only install if you trust the agent driving it.",
+  "version": "0.1.2",
+  "description": "Edit, compose, and transcode video and audio locally with bundled ffmpeg, driven by Claude. No system ffmpeg install required.",
+  "long_description": "Let Claude edit and compose video locally on your machine using ffmpeg. Concatenate clips, trim segments, mix voiceover with background music, burn in captions, generate thumbnails, transcode formats, extract frames, run ffprobe diagnostics — whatever ffmpeg can do. The server is a thin shell + download wrapper; Claude writes the actual ffmpeg command from chat. Two tools: `download` (pull a remote video / audio file to local disk) and `shell_run` (run any shell command — ffmpeg, ffprobe, curl, mkdir, mv, etc). **ffmpeg and ffprobe binaries are bundled with this MCP** (via ffmpeg-static + ffprobe-static) — bare `ffmpeg` / `ffprobe` invocations in shell_run commands resolve to the bundled binaries automatically, with no system install required. SECURITY: shell_run executes arbitrary shell commands as your user — only install if you trust the agent driving it.",
   "author": {
     "name": "mrdainami",
     "url": "https://github.com/mrdainami"

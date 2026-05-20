@@ -20,22 +20,27 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { delimiter, dirname, isAbsolute, resolve } from "node:path";
 import { homedir } from "node:os";
+import * as https from "node:https";
+import * as http from "node:http";
 import ffmpegStatic from "ffmpeg-static";
 import ffprobeStatic from "ffprobe-static";
-import { fetch as undiciFetch } from "undici";
 
-// Explicit fetch import — some MCP host runtimes (notably Claude Cowork) don't
-// expose Node's global `fetch`. Falling back to undici (which powers global
-// fetch under the hood) keeps `download` portable across hosts.
-const fetchImpl: typeof globalThis.fetch =
-  (globalThis as { fetch?: typeof globalThis.fetch }).fetch ??
-  (undiciFetch as unknown as typeof globalThis.fetch);
+// Expand ~, ${HOME}, ${USER}, and any ${VAR} pattern in a string path.
+// Some MCP hosts (notably Claude Cowork) pass the literal `${HOME}` through
+// without expanding manifest defaults; this makes us robust regardless.
+function expandPath(p: string): string {
+  return p
+    .replace(/^~(?=\/|$)/, homedir())
+    .replace(/\$\{HOME\}/g, homedir())
+    .replace(/\$\{USER\}/g, process.env.USER ?? process.env.USERNAME ?? "")
+    .replace(/\$\{([A-Z_][A-Z0-9_]*)\}/g, (m, key) => process.env[key] ?? m);
+}
 
 const WORKDIR_ROOT = (() => {
   const env = process.env.FFMPEG_MCP_WORKDIR;
-  if (!env) return process.cwd();
-  if (env.startsWith("~")) return env.replace(/^~/, homedir());
-  return env;
+  if (!env || env.trim() === "") return process.cwd();
+  const expanded = expandPath(env);
+  return isAbsolute(expanded) ? expanded : resolve(process.cwd(), expanded);
 })();
 
 // Resolve bundled binary paths. ffmpeg-static exports the binary path as default
@@ -60,11 +65,57 @@ function envWithBundledBinaries(): NodeJS.ProcessEnv {
 
 function resolveWorkdir(p?: string): string {
   if (!p) return WORKDIR_ROOT;
-  if (p.startsWith("~")) {
-    const expanded = p.replace(/^~/, homedir());
-    return isAbsolute(expanded) ? expanded : resolve(WORKDIR_ROOT, expanded);
-  }
-  return isAbsolute(p) ? p : resolve(WORKDIR_ROOT, p);
+  const expanded = expandPath(p);
+  return isAbsolute(expanded) ? expanded : resolve(WORKDIR_ROOT, expanded);
+}
+
+/**
+ * Download a URL to a Buffer using node:https — no fetch dependency. Follows
+ * up to 5 redirects.
+ */
+function httpDownload(urlStr: string, redirectCount = 0): Promise<{ status: number; body: Buffer; statusText: string }> {
+  return new Promise((resolveP, reject) => {
+    let u: URL;
+    try {
+      u = new URL(urlStr);
+    } catch {
+      reject(new Error(`Invalid URL: ${urlStr}`));
+      return;
+    }
+    const lib = u.protocol === "https:" ? https : http;
+    const req = lib.request(
+      {
+        method: "GET",
+        protocol: u.protocol,
+        hostname: u.hostname,
+        port: u.port || (u.protocol === "https:" ? 443 : 80),
+        path: `${u.pathname}${u.search}`,
+        headers: { "User-Agent": "dainami-ffmpeg-mcp/0.1.4" },
+      },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        const location = res.headers.location;
+        if ([301, 302, 303, 307, 308].includes(status) && typeof location === "string" && redirectCount < 5) {
+          res.resume();
+          const next = new URL(location, urlStr).toString();
+          resolveP(httpDownload(next, redirectCount + 1));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () =>
+          resolveP({
+            status,
+            body: Buffer.concat(chunks),
+            statusText: res.statusMessage ?? "",
+          }),
+        );
+        res.on("error", reject);
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 type ShellArgs = {
@@ -150,8 +201,8 @@ type DownloadArgs = {
 async function downloadFile(args: DownloadArgs) {
   const dest = resolveWorkdir(args.destPath);
   await mkdir(dirname(dest), { recursive: true });
-  const res = await fetchImpl(args.url);
-  if (!res.ok) {
+  const res = await httpDownload(args.url);
+  if (res.status < 200 || res.status >= 300) {
     return {
       ok: false,
       status: res.status,
@@ -159,13 +210,12 @@ async function downloadFile(args: DownloadArgs) {
       error: `HTTP ${res.status} ${res.statusText}`,
     };
   }
-  const buf = Buffer.from(await res.arrayBuffer());
-  await writeFile(dest, buf);
-  return { ok: true, path: dest, bytes: buf.length, url: args.url };
+  await writeFile(dest, res.body);
+  return { ok: true, path: dest, bytes: res.body.length, url: args.url };
 }
 
 const server = new Server(
-  { name: "dainami-ffmpeg-mcp", version: "0.1.3" },
+  { name: "dainami-ffmpeg-mcp", version: "0.1.4" },
   { capabilities: { tools: {} } },
 );
 
@@ -255,6 +305,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error(`[dainami-ffmpeg-mcp] running on stdio — workdir ${WORKDIR_ROOT}`);
-console.error(`[dainami-ffmpeg-mcp] bundled ffmpeg:  ${FFMPEG_BIN ?? "NOT FOUND"}`);
-console.error(`[dainami-ffmpeg-mcp] bundled ffprobe: ${FFPROBE_BIN ?? "NOT FOUND"}`);
+console.error(`[dainami-ffmpeg-mcp] running on stdio (v0.1.4 — node:https, no fetch dep)`);
+console.error(`[dainami-ffmpeg-mcp] FFMPEG_MCP_WORKDIR raw: ${process.env.FFMPEG_MCP_WORKDIR ?? "(unset)"}`);
+console.error(`[dainami-ffmpeg-mcp] workdir resolved:       ${WORKDIR_ROOT}`);
+console.error(`[dainami-ffmpeg-mcp] bundled ffmpeg:         ${FFMPEG_BIN ?? "NOT FOUND"}`);
+console.error(`[dainami-ffmpeg-mcp] bundled ffprobe:        ${FFPROBE_BIN ?? "NOT FOUND"}`);

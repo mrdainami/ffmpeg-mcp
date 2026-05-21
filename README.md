@@ -14,17 +14,28 @@ No recipes baked in. No DSL to learn. Tell Claude what you want done to a video,
 
 ---
 
-## Install in Claude Desktop (3 minutes, no terminal needed)
+## Which install do I need?
 
-> **Prerequisite:** ffmpeg must be installed on your machine.
+Claude Desktop has two chat modes, and they install MCPs differently:
+
+- **Regular Claude Desktop chat** → use **Path A** (drag-and-drop, 2 minutes, no terminal).
+- **Claude co-work** → use **Path B** (download source, build once, edit a config file). Co-work ignores `.mcpb` files, so it has to be set up by hand.
+
+If you use both modes, do Path B — it works for both.
+
+> **ffmpeg itself must be installed on your machine first** (this MCP just runs ffmpeg commands; it doesn't ship the binary).
 > - **macOS:** `brew install ffmpeg`
-> - **Linux:** `sudo apt install ffmpeg` (or your distro's package manager)
-> - **Windows:** download from [ffmpeg.org](https://ffmpeg.org/download.html), add to PATH
+> - **Linux:** `sudo apt install ffmpeg`
+> - **Windows:** download from [ffmpeg.org](https://ffmpeg.org/download.html) and add it to your PATH.
 
-1. **Download `ffmpeg-mcp.mcpb`** from the [latest release](https://github.com/mrdainami/ffmpeg-mcp/releases).
-2. In Claude Desktop: open **Settings → Extensions** (or drag the `.mcpb` onto the Claude Desktop window).
-3. When prompted, pick a working directory (e.g. `~/AINIO/ads`). Files download here, ffmpeg writes its output here.
-4. Restart Claude Desktop.
+---
+
+## Path A — Regular Claude Desktop (drag-and-drop)
+
+1. **Download `ffmpeg-mcp-0.1.4.mcpb`** from the [latest release](https://github.com/mrdainami/ffmpeg-mcp/releases).
+2. **Drag that file onto the Claude Desktop window** (or open Settings → Extensions and pick it).
+3. When prompted, pick a working directory — files downloaded by the agent and ffmpeg outputs land here. Something like `~/Documents/ffmpeg-work` is fine.
+4. **Quit Claude Desktop fully and reopen it.**
 
 To verify: open a chat → click **+** → **Connectors** → "ffmpeg (local shell)" should appear with 2 tools.
 
@@ -32,48 +43,76 @@ To verify: open a chat → click **+** → **Connectors** → "ffmpeg (local she
 
 ---
 
-## Install manually (Claude Code, or Claude Desktop without `.mcpb`)
+## Path B — Claude co-work (manual install)
 
-Requires Node.js 18+ AND ffmpeg on `PATH`.
+Co-work doesn't load `.mcpb` files. You have to install Node.js, download this repo, build it once, then point Claude at the built file via the config JSON. One-time setup, ~10 minutes.
 
-**Claude Code:**
+### 1. Install Node.js
 
-```bash
-claude mcp add ffmpeg --env FFMPEG_MCP_WORKDIR=~/AINIO/ads -- npx -y @dainami/ffmpeg-mcp
-```
+If you don't have it: go to [nodejs.org](https://nodejs.org) → click the big **LTS** download button → run the installer → click Next a few times.
 
-Or in your project's `.mcp.json`:
+### 2. Download this repo and build it
 
-```json
-{
-  "mcpServers": {
-    "ffmpeg": {
-      "command": "npx",
-      "args": ["-y", "@dainami/ffmpeg-mcp"],
-      "env": { "FFMPEG_MCP_WORKDIR": "~/AINIO/ads" }
+You only do this once. The folder you create here is **permanent** — Claude will look at it forever, so put it somewhere you won't move or delete (`~/Documents/ffmpeg-mcp` is a good spot).
+
+- Go to [github.com/mrdainami/ffmpeg-mcp](https://github.com/mrdainami/ffmpeg-mcp)
+- Click the green **Code** button → **Download ZIP**
+- Unzip it. Rename `ffmpeg-mcp-main` to `ffmpeg-mcp` and put it in `~/Documents/`.
+- Open **Terminal** (Spotlight → "Terminal") and run these, one at a time:
+
+  ```bash
+  cd ~/Documents/ffmpeg-mcp
+  npm install
+  npm run build
+  ```
+
+  After `npm run build` finishes, close Terminal and never open it again.
+
+### 3. Pick a working directory
+
+This is the folder where the agent will download videos and where ffmpeg will write outputs. Make one now, e.g. `~/Documents/ffmpeg-work`.
+
+### 4. Tell Claude where to find it
+
+- In Finder, press **Cmd+Shift+G** and paste:
+
+  ```
+  ~/Library/Application Support/Claude/
+  ```
+
+- Open `claude_desktop_config.json` in any text editor.
+- If the file is empty, paste the whole block below. If it already has stuff, just add the `"ffmpeg": { ... }` block inside the existing `"mcpServers"` object:
+
+  ```json
+  {
+    "mcpServers": {
+      "ffmpeg": {
+        "command": "node",
+        "args": [
+          "/Users/YOUR_USERNAME/Documents/ffmpeg-mcp/dist/index.js"
+        ],
+        "env": {
+          "FFMPEG_MCP_WORKDIR": "/Users/YOUR_USERNAME/Documents/ffmpeg-work"
+        }
+      }
     }
   }
-}
-```
+  ```
 
-**Claude Desktop (manual JSON):** edit `claude_desktop_config.json`
+- Replace `YOUR_USERNAME` with your Mac username (run `whoami` in Terminal if you don't know).
+- Save the file. **Quit Claude Desktop fully and reopen it.**
 
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+On Windows, the config file lives at `%APPDATA%\Claude\claude_desktop_config.json` with Windows-style paths in `args` and `FFMPEG_MCP_WORKDIR`.
 
-```json
-{
-  "mcpServers": {
-    "ffmpeg": {
-      "command": "npx",
-      "args": ["-y", "@dainami/ffmpeg-mcp"],
-      "env": { "FFMPEG_MCP_WORKDIR": "~/AINIO/ads" }
-    }
-  }
-}
-```
+### 5. Try it
 
-Restart Claude Desktop.
+In co-work, ask: *"Trim the first 2 seconds off this video and re-encode at 1080p: https://example.com/video.mp4"*. Claude will download the file into your workdir, run ffmpeg, and drop the output there too.
+
+**If something goes wrong:**
+- "command not found: npm" → Node.js isn't installed. Redo step 1.
+- "module not found" / "ENOENT dist/index.js" → you skipped `npm run build` in step 2.
+- "ffmpeg: command not found" → install ffmpeg itself (see the box above).
+- Tool calls hang forever → check the workdir path in `FFMPEG_MCP_WORKDIR` actually exists.
 
 ---
 

@@ -16,12 +16,13 @@ No recipes baked in. No DSL to learn. Tell Claude what you want done to a video,
 
 ## Which install do I need?
 
-Claude Desktop has two chat modes, and they install MCPs differently:
+Pick the row that matches how you run Claude:
 
-- **Regular Claude Desktop chat** → use **Path A** (drag-and-drop, 2 minutes, no terminal).
-- **Claude co-work** → use **Path B** (download source, build once, edit a config file). Co-work ignores `.mcpb` files, so it has to be set up by hand.
+- **Claude Code (terminal)** → use **Quick start: Claude Code** below — one command, the fastest option.
+- **Regular Claude Desktop chat** → use **Path A** (drag-and-drop `.mcpb`, 2 minutes, no terminal).
+- **Claude Desktop co-work** → use **Path B** (download source, build once, edit a config file). Co-work ignores `.mcpb` files, so you set it up by hand.
 
-If you use both modes, do Path B — it works for both.
+If you use both Desktop modes, do Path B — it works for both.
 
 > **ffmpeg itself must be installed on your machine first** (this MCP just runs ffmpeg commands; it doesn't ship the binary).
 > - **macOS:** `brew install ffmpeg`
@@ -30,9 +31,32 @@ If you use both modes, do Path B — it works for both.
 
 ---
 
+## Quick start: Claude Code (fastest)
+
+One command — no `.mcpb`, no JSON editing. (Make sure `ffmpeg` is installed first — see the box above.)
+
+1. **Clone + build** (once, somewhere permanent):
+
+   ```bash
+   git clone https://github.com/mrdainami/ffmpeg-mcp.git ~/mcp/ffmpeg-mcp
+   cd ~/mcp/ffmpeg-mcp && npm install && npm run build
+   ```
+
+2. **Register it** (`FFMPEG_MCP_WORKDIR` is where downloads + outputs land; `--scope user` makes it available in every project):
+
+   ```bash
+   claude mcp add --scope user ffmpeg --env FFMPEG_MCP_WORKDIR=~/ffmpeg-work -- node ~/mcp/ffmpeg-mcp/dist/index.js
+   ```
+
+3. **Verify:** `claude mcp list` should show `ffmpeg  ✓ Connected`.
+
+To update later: `git pull && npm run build` in the folder, then restart Claude Code.
+
+---
+
 ## Path A — Regular Claude Desktop (drag-and-drop)
 
-1. **Download `ffmpeg-mcp-0.1.4.mcpb`** from the [latest release](https://github.com/mrdainami/ffmpeg-mcp/releases).
+1. **Download the latest `.mcpb`** from the [releases page](https://github.com/mrdainami/ffmpeg-mcp/releases).
 2. **Drag that file onto the Claude Desktop window** (or open Settings → Extensions and pick it).
 3. When prompted, pick a working directory — files downloaded by the agent and ffmpeg outputs land here. Something like `~/Documents/ffmpeg-work` is fine.
 4. **Quit Claude Desktop fully and reopen it.**
